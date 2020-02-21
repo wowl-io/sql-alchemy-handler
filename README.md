@@ -1,2 +1,2 @@
 # python-app-includes
-Some python libs
+Some sql alchemy query and filter handlings for API params
