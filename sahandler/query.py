@@ -18,6 +18,7 @@ class QueryHandler(object):
         self._offset = 0
         self._limit = 30
         self._has_id = False
+        self._has_hydration = False
         self._is_soft_deleted = True
 
     def set_fields(self, fields):
@@ -55,6 +56,10 @@ class QueryHandler(object):
 
     def not_soft_deleted(self):
         self._is_soft_deleted = False
+        return self
+
+    def use_hydration(self):
+        self._has_hydration = True
         return self
 
     def get_base_count_query(self):
@@ -111,8 +116,13 @@ class QueryHandler(object):
             responses = {}
             for result in results:
                 responses[getattr(result, self._response_key)] = responses.get(getattr(result, self._response_key), [])
-                responses[getattr(result, self._response_key)].append(result.to_dict(self._fields))
+                if self._has_hydration:
+                    responses[getattr(result, self._response_key)].append(result.to_dict(self._fields, self._hydrates))
+                else:
+                    responses[getattr(result, self._response_key)].append(result.to_dict(self._fields))
             return responses
+        if self._has_hydration:
+            return [result.to_dict(self._fields, self._hydrates) for result in results]
         return [result.to_dict(self._fields) for result in results]
 
     def get_return_payload(self):
