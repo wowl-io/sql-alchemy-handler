@@ -89,7 +89,7 @@ class QueryHandler(object):
             self._base_query = self._db.query(self._model)
             if self._fields:
                 query_fields = list(set(self._fields + self._model.DEFAULT_FIELDS))
-                query_fields = filter(lambda f: f not in self._model.FOREIGN_KEY_FIELDS, query_fields)
+                query_fields = filter(lambda f: f not in getattr(self._model, "FOREIGN_KEY_FIELDS", []), query_fields)
                 self._base_query = self._base_query.options(load_only(*query_fields))
             if self._is_soft_deleted:
                 self._base_query = self._base_query.filter(getattr(self._model, "is_deleted") == 'N')
