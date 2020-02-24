@@ -62,20 +62,47 @@ class QueryHandler(object):
         self._has_hydration = True
         return self
 
+    def set_base_count_query(self, query):
+        self._base_count_query = query
+        return self
+
     def get_base_count_query(self):
-        query = self._db.query(func.count(func.distinct(getattr(self._model, "id"))))
-        if self._is_soft_deleted:
-            query = query.filter(getattr(self._model, "is_deleted") == 'N')
-        return query
+        if not self._base_count_query:
+            self._base_count_query = self._db.query(func.count(func.distinct(getattr(self._model, "id"))))
+            if self._is_soft_deleted:
+                self._base_count_query = self._base_count_query.filter(getattr(self._model, "is_deleted") == 'N')
+            for f in self._filters:
+                if f.is_join_filter:
+                    continue
+                try:
+                    self._base_count_query = f.add_to_query(self._base_count_query)
+                except AttributeError:
+                    pass
+        return self._base_count_query
+
+    def set_base_query(self, query):
+        self._base_query = query
+        return self
 
     def get_base_query(self):
-        query = self._db.query(self._model)
-        if self._fields:
-            query_fields = list(set(self._fields + self._model.DEFAULT_FIELDS))
-            query = query.options(load_only(*query_fields))
-        if self._is_soft_deleted:
-            query = query.filter(getattr(self._model, "is_deleted") == 'N')
-        return query
+        if not self._base_query:
+            self._base_query = self._db.query(self._model)
+            if self._fields:
+                query_fields = list(set(self._fields + self._model.DEFAULT_FIELDS))
+                query_fields = filter(lambda f: f not in self._model.FOREIGN_KEY_FIELDS, query_fields)
+                self._base_query = self._base_query.options(load_only(*query_fields))
+            if self._is_soft_deleted:
+                self._base_query = self._base_query.filter(getattr(self._model, "is_deleted") == 'N')
+            for f in self._filters:
+                if f.get_column() == "id" and f.get_operator() == "eq":
+                    self._has_id = True
+                if f.is_join_filter:
+                    continue
+                try:
+                    self._base_query = f.add_to_query(self._base_query)
+                except AttributeError:
+                    pass
+        return self._base_query
 
     def add_filter(self, filter):
         self._filters.append(filter)
@@ -84,7 +111,7 @@ class QueryHandler(object):
     def get_count_query(self):
         query = self.get_base_count_query()
         for f in self._filters:
-            if f.is_join_filter:
+            if not f.is_join_filter:
                 continue
             try:
                 query = f.add_to_query(query)
@@ -95,16 +122,14 @@ class QueryHandler(object):
     def get_query(self):
         query = self.get_base_query()
         for f in self._filters:
-            if f.get_column() == "id" and f.get_operator() == "eq":
-                self._has_id = True
-            if f.is_join_filter:
+            if not f.is_join_filter:
                 continue
             try:
                 query = f.add_to_query(query)
             except AttributeError:
                 pass
         order_func = getattr(getattr(self._model, self._order_by), self._order_dir)
-        query = query.order_by(order_func()).offset(self._offset).limit(self._limit)
+        self._base_query = self._base_query.order_by(order_func()).offset(self._offset).limit(self._limit)
         return query
 
     def get_count(self):
@@ -136,4 +161,3 @@ class QueryHandler(object):
             "total_count": count,
             "records": results,
         }
-
