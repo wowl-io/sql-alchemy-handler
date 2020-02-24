@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="sahandler",
-    version="0.0.1",
+    version="0.0.2",
     author="Spencer Siu",
     author_email="spencer@topocean.com",
     description="SQL Alchemy helpers",
