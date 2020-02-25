@@ -416,6 +416,84 @@ class OneToManyKeyValueJoinFilter(BaseJoinFilter):
         )
 
 
+class OneToOneToManyJoinFilter(BaseJoinFilter):
+    def add_to_query(self, query):
+        query = query.join(
+            self.get_intermediate_model_alias(),
+            getattr(self._model, self._model_to_intermediate_relation)
+        )
+        if self._app:
+            query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
+        query = query.join(
+            self.get_secondary_model_alias(),
+            getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
+        )
+
+        key_fields = self._filter_key.split("__")
+        self._column = key_fields[2]
+        if len(key_fields) == 4:
+            self._operator = key_fields[3]
+            if self.is_valid_column(self._secondary_model):
+                if self._operator == "in":
+                    return query.filter(
+                        getattr(
+                            self.get_secondary_model_alias(), self._column
+                        ).in_(
+                            self.get_list(self._filter_value)
+                        )
+                    )
+                if self._operator == "exclude":
+                    return query.filter(
+                        getattr(
+                            self.get_secondary_model_alias(), self._column
+                        ).notin_(
+                            self.get_list(self._filter_value)
+                        )
+                    )
+                if self._operator == "contains":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).like(
+                            "%%%s%%" % str(self._filter_value)
+                        )
+                    )
+                if self._operator == "startswith":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).like(
+                            "%s%%" % str(self._filter_value)
+                        )
+                    )
+                if self._operator == "endswith":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).like(
+                            "%%%s" % str(self._filter_value)
+                        )
+                    )
+                if self._operator == "soundex":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).op(
+                            "SOUNDS LIKE"
+                        )(str(self._filter_value))
+                    )
+                if self._operator == "gte":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column) >= self._filter_value
+                    )
+                if self._operator == "gt":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column) > self._filter_value
+                    )
+                if self._operator == "lte":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column) <= self._filter_value
+                    )
+                if self._operator == "lt":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column) < self._filter_value
+                    )
+        self._operator = "eq"
+        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self._filter_value)
+
+
 class ManyToManyJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
         query = query.join(
