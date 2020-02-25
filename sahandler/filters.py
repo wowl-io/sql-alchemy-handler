@@ -116,6 +116,7 @@ class BaseJoinFilter(BaseQueryFilter):
         self._intermediate_to_secondary_relation = None
         self._model_to_secondary_relation = None
         self._default_column = None
+        self._app = None
 
     def set_intermediate_model(self, model):
         self._intermediate_model = model
@@ -135,6 +136,10 @@ class BaseJoinFilter(BaseQueryFilter):
 
     def set_model_to_secondary_relation(self, relation):
         self._model_to_secondary_relation = str(relation)
+        return self
+
+    def set_app(self, app):
+        self._app = app
         return self
 
     def get_intermediate_model_alias(self):
@@ -166,6 +171,8 @@ class OneToOneJoinFilter(BaseJoinFilter):
             self.get_secondary_model_alias(),
             getattr(self._model, self._model_to_secondary_relation)
         )
+        if self._app:
+            query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         if len(key_fields) == 3:
             self._operator = key_fields[2]
             if self.is_valid_column(self._secondary_model):
@@ -217,6 +224,8 @@ class OneToManyJoinFilter(BaseJoinFilter):
             self.get_secondary_model_alias(),
             getattr(self._model, self._model_to_secondary_relation)
         )
+        if self._app:
+            query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         if "__" in self._filter_key:
             key_fields = self._filter_key.split("__")
             self._column = key_fields[1]
@@ -306,6 +315,8 @@ class OneToManyKeyValueJoinFilter(BaseJoinFilter):
             self.get_secondary_model_alias(),
             getattr(self._model, self._model_to_secondary_relation)
         )
+        if self._app:
+            query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         key_fields = self._filter_key.split("__")
         self._column = key_fields[1]
         if len(key_fields) == 3:
@@ -411,6 +422,8 @@ class ManyToManyJoinFilter(BaseJoinFilter):
             self.get_intermediate_model_alias(),
             getattr(self._model, self._model_to_intermediate_relation)
         )
+        if self._app:
+            query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
         query = query.join(
             self.get_secondary_model_alias(),
             getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
@@ -500,6 +513,8 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
             self.get_intermediate_model_alias(),
             getattr(self._model, self._model_to_intermediate_relation)
         )
+        if self._app:
+            query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
         query = query.join(
             self.get_secondary_model_alias(),
             getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
@@ -614,6 +629,8 @@ class KeyValueJoinFactory(BaseJoinFilter):
                 self._key_field
             ).set_value_field(
                 self._value_field
+            ).set_app(
+                self._app
             )
         elif len(key_fields) == 3 and \
                 key_fields[2] in [
@@ -627,6 +644,8 @@ class KeyValueJoinFactory(BaseJoinFilter):
                 self._key_field
             ).set_value_field(
                 self._value_field
+            ).set_app(
+                self._app
             )
         return ManyToManyKeyValueJoinFilter(self._model, self._filter_key, self._filter_value).set_intermediate_model(
             self._intermediate_model
@@ -640,4 +659,6 @@ class KeyValueJoinFactory(BaseJoinFilter):
             self._key_field
         ).set_value_field(
             self._value_field
+        ).set_app(
+            self._app
         )
