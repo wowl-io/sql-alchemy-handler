@@ -18,6 +18,7 @@ class QueryHandler(object):
         self._offset = 0
         self._limit = 30
         self._has_id = False
+        self._app = None
         self._has_hydration = False
         self._is_soft_deleted = True
 
@@ -52,6 +53,10 @@ class QueryHandler(object):
 
     def set_limit(self, limit):
         self._limit = limit
+        return self
+
+    def set_app(self, app):
+        self._app = app
         return self
 
     def not_soft_deleted(self):
@@ -142,11 +147,20 @@ class QueryHandler(object):
             for result in results:
                 responses[getattr(result, self._response_key)] = responses.get(getattr(result, self._response_key), [])
                 if self._has_hydration:
-                    responses[getattr(result, self._response_key)].append(result.to_dict(self._fields, self._hydrates))
+                    if self._app:
+                        responses[getattr(result, self._response_key)].append(
+                            result.to_dict(self._fields, self._hydrates, self._app)
+                        )
+                    else:
+                        responses[getattr(result, self._response_key)].append(
+                            result.to_dict(self._fields, self._hydrates)
+                        )
                 else:
                     responses[getattr(result, self._response_key)].append(result.to_dict(self._fields))
             return responses
         if self._has_hydration:
+            if self._app:
+                return [result.to_dict(self._fields, self._hydrates, self._app) for result in results]
             return [result.to_dict(self._fields, self._hydrates) for result in results]
         return [result.to_dict(self._fields) for result in results]
 
