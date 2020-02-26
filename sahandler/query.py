@@ -134,7 +134,7 @@ class QueryHandler(object):
             except AttributeError:
                 pass
         order_func = getattr(getattr(self._model, self._order_by), self._order_dir)
-        self._base_query = self._base_query.order_by(order_func()).offset(self._offset).limit(self._limit)
+        query = query.order_by(order_func()).offset(self._offset).limit(self._limit)
         return query
 
     def get_count(self):
