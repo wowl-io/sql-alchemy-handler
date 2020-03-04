@@ -679,7 +679,6 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
 
 class KeyValueJoinFactory(BaseJoinFilter):
     def __init__(self, model, filter_key, filter_value):
-        """I am very lazy!!!"""
         super().__init__(model, filter_key, filter_value)
         self._key_field = None
         self._value_field = None
@@ -693,27 +692,12 @@ class KeyValueJoinFactory(BaseJoinFilter):
         return self
 
     def add_to_query(self, query):
-        """I am really lazy!!!"""
-        pass
-
-    def get(self):
         key_fields = self._filter_key.split("__")
-        if len(key_fields) == 2:
-            return OneToManyKeyValueJoinFilter(self._model, self._filter_key, self._filter_value).set_secondary_model(
-                self._intermediate_model
-            ).set_model_to_secondary_relation(
-                self._model_to_intermediate_relation
-            ).set_key_field(
-                self._key_field
-            ).set_value_field(
-                self._value_field
-            ).set_app(
-                self._app
-            )
-        elif len(key_fields) == 3 and \
+        if len(key_fields) == 2 or (
+                len(key_fields) == 3 and
                 key_fields[2] in [
                     "in", "exclude", "contains", "startswith", "endswith", "soundex", "gte", "gt", "lte", "lt",
-                ]:
+                ]):
             return OneToManyKeyValueJoinFilter(self._model, self._filter_key, self._filter_value).set_secondary_model(
                 self._intermediate_model
             ).set_model_to_secondary_relation(
@@ -724,7 +708,7 @@ class KeyValueJoinFactory(BaseJoinFilter):
                 self._value_field
             ).set_app(
                 self._app
-            )
+            ).add_to_query(query)
         return ManyToManyKeyValueJoinFilter(self._model, self._filter_key, self._filter_value).set_intermediate_model(
             self._intermediate_model
         ).set_model_to_intermediate_relation(
@@ -739,4 +723,4 @@ class KeyValueJoinFactory(BaseJoinFilter):
             self._value_field
         ).set_app(
             self._app
-        )
+        ).add_to_query(query)
