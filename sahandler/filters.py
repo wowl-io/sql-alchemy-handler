@@ -386,9 +386,9 @@ class OneToManyJoinFilter(BaseJoinFilter):
         self._operator = "in"
         return query.filter(
             getattr(self.get_secondary_model_alias(), self._default_column).in_(self.cast(
-                self.get_secondary_model_alias(), self._default_column),
+                getattr(self.get_secondary_model_alias(), self._default_column),
                 self.get_list(self._filter_value)
-            )
+            ))
         )
 
 
