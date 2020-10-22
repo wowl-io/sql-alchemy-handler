@@ -24,6 +24,19 @@ class BaseQueryFilter(ABC):
         return self._operator
 
     @staticmethod
+    def cast(col, value):
+        if isinstance(value, list):
+            if str(col.type) == 'INTEGER':
+                return [int(v) for v in value]
+            elif str(col.type) == 'DECIMAL':
+                return [float(v) for v in value]
+        if str(col.type) == 'INTEGER':
+            return int(value)
+        elif str(col.type) == 'DECIMAL':
+            return float(value)
+        return value
+
+    @staticmethod
     def get_list(value):
         if not value:
             return []
@@ -43,9 +56,15 @@ class DefaultFilter(BaseQueryFilter):
             self._column, self._operator = self._filter_key.split("__")
             if self.is_valid_column(self._model):
                 if self._operator == "in":
-                    return query.filter(getattr(self._model, self._column).in_(self.get_list(self._filter_value)))
+                    return query.filter(getattr(self._model, self._column).in_(self.cast(
+                        getattr(self._model, self._column),
+                        self.get_list(self._filter_value)
+                    )))
                 if self._operator == "exclude":
-                    return query.filter(getattr(self._model, self._column).notin_(self.get_list(self._filter_value)))
+                    return query.filter(getattr(self._model, self._column).notin_(self.cast(
+                        getattr(self._model, self._column),
+                        self.get_list(self._filter_value)
+                    )))
                 if self._operator == "contains":
                     return query.filter(getattr(self._model, self._column).like("%%%s%%" % str(self._filter_value)))
                 if self._operator == "startswith":
@@ -55,16 +74,31 @@ class DefaultFilter(BaseQueryFilter):
                 if self._operator == "soundex":
                     return query.filter(getattr(self._model, self._column).op("SOUNDS LIKE")(str(self._filter_value)))
                 if self._operator == "gte":
-                    return query.filter(getattr(self._model, self._column) >= self._filter_value)
+                    return query.filter(getattr(self._model, self._column) >= self.cast(
+                        getattr(self._model, self._column),
+                        self._filter_value
+                    ))
                 if self._operator == "gt":
-                    return query.filter(getattr(self._model, self._column) > self._filter_value)
+                    return query.filter(getattr(self._model, self._column) > self.cast(
+                        getattr(self._model, self._column),
+                        self._filter_value
+                    ))
                 if self._operator == "lte":
-                    return query.filter(getattr(self._model, self._column) <= self._filter_value)
+                    return query.filter(getattr(self._model, self._column) <= self.cast(
+                        getattr(self._model, self._column),
+                        self._filter_value
+                    ))
                 if self._operator == "lt":
-                    return query.filter(getattr(self._model, self._column) < self._filter_value)
+                    return query.filter(getattr(self._model, self._column) < self.cast(
+                        getattr(self._model, self._column),
+                        self._filter_value
+                    ))
         self._column = self._filter_key
         self._operator = "eq"
-        return query.filter(getattr(self._model, self._filter_key) == self._filter_value)
+        return query.filter(getattr(self._model, self._filter_key) == self.cast(
+            getattr(self._model, self._column),
+            self._filter_value
+        ))
 
 
 class OrFilter(BaseQueryFilter):
@@ -75,9 +109,15 @@ class OrFilter(BaseQueryFilter):
             columns = self._column.split("_or_")
             for c in columns:
                 if self._operator == "in":
-                    expressions.append(getattr(self._model, c).in_(self.get_list(self._filter_value)))
+                    expressions.append(getattr(self._model, c).in_(self.cast(
+                        getattr(self._model, c),
+                        self.get_list(self._filter_value)
+                    )))
                 if self._operator == "exclude":
-                    expressions.append(getattr(self._model, c).notin_(self.get_list(self._filter_value)))
+                    expressions.append(getattr(self._model, c).notin_(self.cast(
+                        getattr(self._model, c),
+                        self.get_list(self._filter_value)
+                    )))
                 if self._operator == "contains":
                     expressions.append(getattr(self._model, c).like("%%%s%%" % str(self._filter_value)))
                 if self._operator == "startswith":
@@ -87,19 +127,34 @@ class OrFilter(BaseQueryFilter):
                 if self._operator == "soundex":
                     expressions.append(getattr(self._model, c).op("SOUNDS LIKE")(str(self._filter_value)))
                 if self._operator == "gte":
-                    expressions.append(getattr(self._model, c) >= self._filter_value)
+                    expressions.append(getattr(self._model, c) >= self.cast(
+                        getattr(self._model, c),
+                        self._filter_value
+                    ))
                 if self._operator == "gt":
-                    expressions.append(getattr(self._model, c) > self._filter_value)
+                    expressions.append(getattr(self._model, c) > self.cast(
+                        getattr(self._model, c),
+                        self._filter_value
+                    ))
                 if self._operator == "lte":
-                    expressions.append(getattr(self._model, c) <= self._filter_value)
+                    expressions.append(getattr(self._model, c) <= self.cast(
+                        getattr(self._model, c),
+                        self._filter_value
+                    ))
                 if self._operator == "lt":
-                    expressions.append(getattr(self._model, c) < self._filter_value)
+                    expressions.append(getattr(self._model, c) < self.cast(
+                        getattr(self._model, c),
+                        self._filter_value
+                    ))
             return query.filter(or_(*expressions))
         self._column = self._filter_key
         self._operator = "eq"
         columns = self._column.split("_or_")
         for c in columns:
-            expressions.append(getattr(self._model, c) == self._filter_value)
+            expressions.append(getattr(self._model, c) == self.cast(
+                getattr(self._model, c),
+                self._filter_value
+            ))
         return query.filter(or_(*expressions))
 
 
@@ -180,13 +235,19 @@ class OneToOneJoinFilter(BaseJoinFilter):
                     return query.filter(
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).in_(self.get_list(self._filter_value))
+                        ).in_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self.get_list(self._filter_value)
+                        ))
                     )
                 if self._operator == "exclude":
                     return query.filter(
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).notin_(self.get_list(self._filter_value))
+                        ).notin_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self.get_list(self._filter_value)
+                        ))
                     )
                 if self._operator == "contains":
                     return query.filter(
@@ -207,15 +268,30 @@ class OneToOneJoinFilter(BaseJoinFilter):
                         )(str(self._filter_value))
                     )
                 if self._operator == "gte":
-                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) >= self._filter_value)
+                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) >= self.cast(
+                        getattr(self.get_secondary_model_alias(), self._column),
+                        self._filter_value
+                    ))
                 if self._operator == "gt":
-                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) > self._filter_value)
+                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) > self.cast(
+                        getattr(self.get_secondary_model_alias(), self._column),
+                        self._filter_value
+                    ))
                 if self._operator == "lte":
-                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) <= self._filter_value)
+                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) <= self.cast(
+                        getattr(self.get_secondary_model_alias(), self._column),
+                        self._filter_value
+                    ))
                 if self._operator == "lt":
-                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) < self._filter_value)
+                    return query.filter(getattr(self.get_secondary_model_alias(), self._column) < self.cast(
+                        getattr(self.get_secondary_model_alias(), self._column),
+                        self._filter_value
+                    ))
         self._operator = "eq"
-        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self._filter_value)
+        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self.cast(
+            getattr(self.get_secondary_model_alias(), self._column),
+            self._filter_value
+        ))
 
 
 class OneToManyJoinFilter(BaseJoinFilter):
@@ -236,17 +312,19 @@ class OneToManyJoinFilter(BaseJoinFilter):
                         return query.filter(
                             getattr(
                                 self.get_secondary_model_alias(), self._column
-                            ).in_(
+                            ).in_(self.cast(
+                                getattr(self.get_secondary_model_alias(), self._column),
                                 self.get_list(self._filter_value)
-                            )
+                            ))
                         )
                     if self._operator == "exclude":
                         return query.filter(
                             getattr(
                                 self.get_secondary_model_alias(), self._column
-                            ).notin_(
+                            ).notin_(self.cast(
+                                getattr(self.get_secondary_model_alias(), self._column),
                                 self.get_list(self._filter_value)
-                            )
+                            ))
                         )
                     if self._operator == "contains":
                         return query.filter(
@@ -274,25 +352,43 @@ class OneToManyJoinFilter(BaseJoinFilter):
                         )
                     if self._operator == "gte":
                         return query.filter(
-                            getattr(self.get_secondary_model_alias(), self._column) >= self._filter_value
+                            getattr(self.get_secondary_model_alias(), self._column) >= self.cast(
+                                getattr(self.get_secondary_model_alias(), self._column),
+                                self._filter_value
+                            )
                         )
                     if self._operator == "gt":
                         return query.filter(
-                            getattr(self.get_secondary_model_alias(), self._column) > self._filter_value
+                            getattr(self.get_secondary_model_alias(), self._column) > self.cast(
+                                getattr(self.get_secondary_model_alias(), self._column),
+                                self._filter_value
+                            )
                         )
                     if self._operator == "lte":
                         return query.filter(
-                            getattr(self.get_secondary_model_alias(), self._column) <= self._filter_value
+                            getattr(self.get_secondary_model_alias(), self._column) <= self.cast(
+                                getattr(self.get_secondary_model_alias(), self._column),
+                                self._filter_value
+                            )
                         )
                     if self._operator == "lt":
                         return query.filter(
-                            getattr(self.get_secondary_model_alias(), self._column) < self._filter_value
+                            getattr(self.get_secondary_model_alias(), self._column) < self.cast(
+                                getattr(self.get_secondary_model_alias(), self._column),
+                                self._filter_value
+                            )
                         )
             self._operator = "eq"
-            return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self._filter_value)
+            return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self.cast(
+                getattr(self.get_secondary_model_alias(), self._column),
+                self._filter_value
+            ))
         self._operator = "in"
         return query.filter(
-            getattr(self.get_secondary_model_alias(), self._default_column).in_(self.get_list(self._filter_value))
+            getattr(self.get_secondary_model_alias(), self._default_column).in_(self.cast(
+                self.get_secondary_model_alias(), self._default_column),
+                self.get_list(self._filter_value)
+            )
         )
 
 
@@ -328,9 +424,10 @@ class OneToManyKeyValueJoinFilter(BaseJoinFilter):
                     ) == self._column,
                     getattr(
                         self.get_secondary_model_alias(), self._value_field
-                    ).in_(
+                    ).in_(self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
                         self.get_list(self._filter_value)
-                    )
+                    ))
                 )
             if self._operator == "exclude":
                 return query.filter(
@@ -339,9 +436,10 @@ class OneToManyKeyValueJoinFilter(BaseJoinFilter):
                     ) == self._column,
                     getattr(
                         self.get_secondary_model_alias(), self._value_field
-                    ).notin_(
+                    ).notin_(self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
                         self.get_list(self._filter_value)
-                    )
+                    ))
                 )
             if self._operator == "contains":
                 return query.filter(
@@ -384,35 +482,50 @@ class OneToManyKeyValueJoinFilter(BaseJoinFilter):
                     getattr(
                         self.get_secondary_model_alias(), self._key_field
                     ) == self._column,
-                    getattr(self.get_secondary_model_alias(), self._value_field) >= self._filter_value
+                    getattr(self.get_secondary_model_alias(), self._value_field) >= self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
                 )
             if self._operator == "gt":
                 return query.filter(
                     getattr(
                         self.get_secondary_model_alias(), self._key_field
                     ) == self._column,
-                    getattr(self.get_secondary_model_alias(), self._value_field) > self._filter_value
+                    getattr(self.get_secondary_model_alias(), self._value_field) > self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
                 )
             if self._operator == "lte":
                 return query.filter(
                     getattr(
                         self.get_secondary_model_alias(), self._key_field
                     ) == self._column,
-                    getattr(self.get_secondary_model_alias(), self._value_field) <= self._filter_value
+                    getattr(self.get_secondary_model_alias(), self._value_field) <= self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
                 )
             if self._operator == "lt":
                 return query.filter(
                     getattr(
                         self.get_secondary_model_alias(), self._key_field
                     ) == self._column,
-                    getattr(self.get_secondary_model_alias(), self._value_field) < self._filter_value
+                    getattr(self.get_secondary_model_alias(), self._value_field) < self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
                 )
         self._operator = "eq"
         return query.filter(
             getattr(
                 self.get_secondary_model_alias(), self._key_field
             ) == self._column,
-            getattr(self.get_secondary_model_alias(), self._value_field) == self._filter_value
+            getattr(self.get_secondary_model_alias(), self._value_field) == self.cast(
+                getattr(self.get_secondary_model_alias(), self._value_field),
+                self._filter_value
+            )
         )
 
 
@@ -438,17 +551,19 @@ class OneToOneToManyJoinFilter(BaseJoinFilter):
                     return query.filter(
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).in_(
+                        ).in_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
                             self.get_list(self._filter_value)
-                        )
+                        ))
                     )
                 if self._operator == "exclude":
                     return query.filter(
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).notin_(
+                        ).notin_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
                             self.get_list(self._filter_value)
-                        )
+                        ))
                     )
                 if self._operator == "contains":
                     return query.filter(
@@ -476,22 +591,37 @@ class OneToOneToManyJoinFilter(BaseJoinFilter):
                     )
                 if self._operator == "gte":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) >= self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) >= self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "gt":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) > self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) > self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "lte":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) <= self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) <= self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "lt":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) < self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) < self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
         self._operator = "eq"
-        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self._filter_value)
+        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self.cast(
+            getattr(self.get_secondary_model_alias(), self._column),
+            self._filter_value
+        ))
 
 
 class ManyToManyJoinFilter(BaseJoinFilter):
@@ -516,17 +646,19 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                     return query.filter(
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).in_(
+                        ).in_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
                             self.get_list(self._filter_value)
-                        )
+                        ))
                     )
                 if self._operator == "exclude":
                     return query.filter(
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).notin_(
+                        ).notin_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
                             self.get_list(self._filter_value)
-                        )
+                        ))
                     )
                 if self._operator == "contains":
                     return query.filter(
@@ -554,22 +686,37 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                     )
                 if self._operator == "gte":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) >= self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) >= self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "gt":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) > self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) > self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "lte":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) <= self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) <= self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "lt":
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) < self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) < self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
         self._operator = "eq"
-        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self._filter_value)
+        return query.filter(getattr(self.get_secondary_model_alias(), self._column) == self.cast(
+            getattr(self.get_secondary_model_alias(), self._column),
+            self._filter_value
+        ))
 
 
 class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
@@ -609,18 +756,20 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).in_(
+                        ).in_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
                             self.get_list(self._filter_value)
-                        )
+                        ))
                     )
                 if self._operator == "exclude":
                     return query.filter(
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
                         getattr(
                             self.get_secondary_model_alias(), self._column
-                        ).notin_(
+                        ).notin_(self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
                             self.get_list(self._filter_value)
-                        )
+                        ))
                     )
                 if self._operator == "contains":
                     return query.filter(
@@ -653,27 +802,42 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
                 if self._operator == "gte":
                     return query.filter(
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
-                        getattr(self.get_secondary_model_alias(), self._column) >= self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) >= self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "gt":
                     return query.filter(
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
-                        getattr(self.get_secondary_model_alias(), self._column) > self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) > self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "lte":
                     return query.filter(
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
-                        getattr(self.get_secondary_model_alias(), self._column) <= self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) <= self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
                 if self._operator == "lt":
                     return query.filter(
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
-                        getattr(self.get_secondary_model_alias(), self._column) < self._filter_value
+                        getattr(self.get_secondary_model_alias(), self._column) < self.cast(
+                            getattr(self.get_secondary_model_alias(), self._column),
+                            self._filter_value
+                        )
                     )
         self._operator = "eq"
         return query.filter(
             getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
-            getattr(self.get_secondary_model_alias(), self._column) == self._filter_value
+            getattr(self.get_secondary_model_alias(), self._column) == self.cast(
+                getattr(self.get_secondary_model_alias(), self._column),
+                self._filter_value
+            )
         )
 
 
