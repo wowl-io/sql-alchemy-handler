@@ -104,12 +104,12 @@ class QueryHandler(object):
             if self._is_soft_deleted:
                 self._base_query = self._base_query.filter(getattr(self._model, "is_deleted") == 'N')
             for f in self._filters:
-                if f.get_column() == self._primary_key and f.get_operator() == "eq":
-                    self._has_id = True
                 if f.is_join_filter:
                     continue
                 try:
                     self._base_query = f.add_to_query(self._base_query)
+                    if f.get_column() == self._primary_key and f.get_operator() == "eq":
+                        self._has_id = True
                 except AttributeError:
                     pass
         return self._base_query
