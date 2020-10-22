@@ -21,6 +21,7 @@ class QueryHandler(object):
         self._app = None
         self._has_hydration = False
         self._is_soft_deleted = True
+        self._primary_key = "id"
 
     def set_fields(self, fields):
         if (fields):
@@ -59,6 +60,10 @@ class QueryHandler(object):
         self._app = app
         return self
 
+    def set_primary_key(self, primary_key):
+        self._primary_key = primary_key
+        return self
+
     def not_soft_deleted(self):
         self._is_soft_deleted = False
         return self
@@ -73,7 +78,7 @@ class QueryHandler(object):
 
     def get_base_count_query(self):
         if not self._base_count_query:
-            self._base_count_query = self._db.query(func.count(func.distinct(getattr(self._model, "id"))))
+            self._base_count_query = self._db.query(func.count(func.distinct(getattr(self._model, self._primary_key))))
             if self._is_soft_deleted:
                 self._base_count_query = self._base_count_query.filter(getattr(self._model, "is_deleted") == 'N')
             for f in self._filters:
@@ -103,7 +108,7 @@ class QueryHandler(object):
                     continue
                 try:
                     self._base_query = f.add_to_query(self._base_query)
-                    if f.get_column() == "id" and f.get_operator() == "eq":
+                    if f.get_column() == self._primary_key and f.get_operator() == "eq":
                         self._has_id = True
                 except AttributeError:
                     pass
