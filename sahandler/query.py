@@ -1,6 +1,9 @@
 from sqlalchemy import *
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.dialects.mysql import pymysql
+
+import requests
 
 
 class QueryHandler(object):
@@ -180,3 +183,52 @@ class QueryHandler(object):
             "total_count": count,
             "records": results,
         }
+
+
+class EsQueryHandler(QueryHandler):
+    def __init__(self, db, model):
+        super().__init__(db, model)
+        self._es_host = None
+        self._es_auth = None
+        self._id_alias = "numeric_id"
+        self._results = {}
+
+    def set_es(self, host, auth):
+        self._es_host = host
+        self._es_auth = auth
+        return self
+
+    def set_id_alias(self, alias):
+        self._id_alias = alias
+        return self
+
+    def serialize(self, schema, result):
+        serialized = {}
+        for field_index, field_key in enumerate(schema):
+            serialized["id" if field_key["name"] == self._id_alias else field_key["name"]] = result[field_index]
+        return serialized
+
+    def get_results(self):
+        if self._has_id:
+            if self._results['total'] > 0:
+                return self.serialize(self._results['schema'], self._results['datarows'][0])
+            raise NoResultFound("ID not found")
+        return {
+            "total_count": self._results['total'],
+            "records": [self.serialize(self._results['schema'], r) for r in self._results['datarows']]
+        }
+
+    def get_return_payload(self):
+        es_query = self.get_query()
+        response = requests.post(
+            "%s/_opendistro/_sql" % self._es_host,
+            json={
+                "query": str(es_query.statement.compile(
+                    dialect=pymysql.dialect(),
+                    compile_kwargs={"literal_binds": True}
+                ))
+            },
+            auth=self._es_auth
+        )
+        self._results = response.json()
+        return self.get_results()
