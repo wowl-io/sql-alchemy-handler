@@ -213,10 +213,22 @@ class EsQueryHandler(QueryHandler):
             if self._results['total'] > 0:
                 return self.serialize(self._results['schema'], self._results['datarows'][0])
             raise NoResultFound("ID not found")
-        return {
+        results = {
             "total_count": self._results['total'],
             "records": [self.serialize(self._results['schema'], r) for r in self._results['datarows']]
         }
+        if self._response_key:
+            grouped_results = {
+                "total_count": self._results['total'],
+                "records": {}
+            }
+            for record in results["records"]:
+                try:
+                    grouped_results["records"][record[self._response_key]].append(record)
+                except KeyError:
+                    grouped_results["records"][record[self._response_key]] = [record]
+            return grouped_results
+        return results
 
     def get_return_payload(self):
         es_query = self.get_query()
