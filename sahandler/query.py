@@ -4,6 +4,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.dialects.mysql import pymysql
 
 import requests
+import re
 
 
 class QueryHandler(object):
@@ -202,20 +203,26 @@ class EsQueryHandler(QueryHandler):
         self._id_alias = alias
         return self
 
-    def serialize(self, schema, result):
-        serialized = {}
+    def normalize(self, schema, result):
+        normalized = {}
+        query_fields = []
+        if self._fields:
+            query_fields = list(set(self._fields + self._model.DEFAULT_FIELDS))
         for field_index, field_key in enumerate(schema):
-            serialized["id" if field_key["name"] == self._id_alias else field_key["name"]] = result[field_index]
-        return serialized
+            normal_key = "id" if field_key["name"] == self._id_alias else field_key["name"]
+            if query_fields and normal_key not in query_fields:
+                continue
+            normalized[normal_key] = result[field_index]
+        return normalized
 
     def get_results(self):
         if self._has_id:
             if self._results['total'] > 0:
-                return self.serialize(self._results['schema'], self._results['datarows'][0])
+                return self.normalize(self._results['schema'], self._results['datarows'][0])
             raise NoResultFound("ID not found")
         results = {
             "total_count": self._results['total'],
-            "records": [self.serialize(self._results['schema'], r) for r in self._results['datarows']]
+            "records": [self.normalize(self._results['schema'], r) for r in self._results['datarows']]
         }
         if self._response_key:
             grouped_results = {
@@ -230,15 +237,20 @@ class EsQueryHandler(QueryHandler):
             return grouped_results
         return results
 
+    def get_query_text(self):
+        query_text = str(self.get_query().statement.compile(
+            dialect=pymysql.dialect(),
+            compile_kwargs={"literal_binds": True}
+        ))
+        return re.sub("^SELECT.*FROM", 'SELECT * FROM', query_text, flags=re.DOTALL).replace(
+            ' LIKE ', '.keyword LIKE '
+        ).replace('...', '`.`').replace('```', '')
+
     def get_return_payload(self):
-        es_query = self.get_query()
         response = requests.post(
             "%s/_opendistro/_sql" % self._es_host,
             json={
-                "query": str(es_query.statement.compile(
-                    dialect=pymysql.dialect(),
-                    compile_kwargs={"literal_binds": True}
-                ))
+                "query": self.get_query_text()
             },
             auth=self._es_auth
         )
