@@ -23,6 +23,23 @@ class BaseQueryFilter(ABC):
     def get_operator(self):
         return self._operator
 
+    def use_custom_column(self, column_type):
+        filter_key_fields = self._filter_key.split('__')
+        custom_column = "%s_%s" % (filter_key_fields[0], filter_key_fields[1])
+        self._filter_key = custom_column
+        if len(filter_key_fields) > 2:
+            self._filter_key = "%s__%s" % (
+                custom_column,
+                filter_key_fields[2]
+            )
+        if not hasattr(self._model, custom_column):
+            setattr(
+                self._model,
+                custom_column,
+                Column("`%s`...`%s`" % (filter_key_fields[0], filter_key_fields[1]), column_type)
+            )
+        return self
+
     @staticmethod
     def cast(col, value):
         if isinstance(value, list):
