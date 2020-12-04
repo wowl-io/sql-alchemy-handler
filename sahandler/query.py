@@ -210,6 +210,8 @@ class EsQueryHandler(QueryHandler):
             query_fields = list(set(self._fields + self._model.DEFAULT_FIELDS))
         for field_index, field_key in enumerate(schema):
             normal_key = "id" if field_key["name"] == self._id_alias else field_key["name"]
+            if normal_key.endswith("_q"):
+                continue
             if query_fields and normal_key not in query_fields:
                 continue
             normalized[normal_key] = result[field_index]
