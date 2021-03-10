@@ -858,6 +858,45 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
         )
 
 
+class JoinFactory(BaseJoinFilter):
+    def __init__(self, model, filter_key, filter_value):
+        super().__init__(model, filter_key, filter_value)
+        self._key_field = None
+        self._value_field = None
+
+    def set_key_field(self, field):
+        self._key_field = field
+        return self
+
+    def set_value_field(self, field):
+        self._value_field = field
+        return self
+
+    def add_to_query(self, query):
+        key_fields = self._filter_key.split("__")
+        if len(key_fields) == 2 or (
+                len(key_fields) == 3 and
+                key_fields[2] in [
+                    "in", "exclude", "contains", "startswith", "endswith", "soundex", "gte", "gt", "lte", "lt",
+                ]):
+            return OneToManyJoinFilter(self._model, self._filter_key, self._filter_value).set_secondary_model(
+                self._intermediate_model
+            ).set_model_to_secondary_relation(
+                self._model_to_intermediate_relation
+            ).set_default_column(
+                self._value_field
+            ).add_to_query(query)
+        return OneToOneToManyJoinFilter(self._model, self._filter_key, self._filter_value).set_intermediate_model(
+            self._intermediate_model
+        ).set_model_to_intermediate_relation(
+            self._model_to_intermediate_relation
+        ).set_secondary_model(
+            self._secondary_model
+        ).set_intermediate_to_secondary_relation(
+            self._intermediate_to_secondary_relation
+        ).add_to_query(query)
+
+
 class KeyValueJoinFactory(BaseJoinFilter):
     def __init__(self, model, filter_key, filter_value):
         super().__init__(model, filter_key, filter_value)
