@@ -858,6 +858,127 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
         )
 
 
+class OneToOneToKeyValueJoinFilter(BaseJoinFilter):
+    def __init__(self, model, filter_key, filter_value):
+        super().__init__(model, filter_key, filter_value)
+        self._key_field = None
+        self._value_field = None
+
+    def set_key_field(self, field):
+        self._key_field = field
+        return self
+
+    def set_value_field(self, field):
+        self._value_field = field
+        return self
+
+    def add_to_query(self, query):
+        query = query.join(
+            self.get_intermediate_model_alias(),
+            getattr(self._model, self._model_to_intermediate_relation)
+        )
+        if self._app:
+            query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
+        query = query.join(
+            self.get_secondary_model_alias(),
+            getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
+        )
+
+        key_fields = self._filter_key.split("__")
+        key_value = key_fields[2]
+        # self._column = key_fields[2]
+        if len(key_fields) == 4:
+            self._operator = key_fields[3]
+            if self._operator == "in":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(
+                        self.get_secondary_model_alias(), self._value_field
+                    ).in_(self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self.get_list(self._filter_value)
+                    ))
+                )
+            if self._operator == "exclude":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(
+                        self.get_secondary_model_alias(), self._value_field
+                    ).notin_(self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self.get_list(self._filter_value)
+                    ))
+                )
+            if self._operator == "contains":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field).like(
+                        "%%%s%%" % str(self._filter_value)
+                    )
+                )
+            if self._operator == "startswith":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field).like(
+                        "%s%%" % str(self._filter_value)
+                    )
+                )
+            if self._operator == "endswith":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field).like(
+                        "%%%s" % str(self._filter_value)
+                    )
+                )
+            if self._operator == "soundex":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field).op(
+                        "SOUNDS LIKE"
+                    )(str(self._filter_value))
+                )
+            if self._operator == "gte":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field) >= self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
+                )
+            if self._operator == "gt":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field) > self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
+                )
+            if self._operator == "lte":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field) <= self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
+                )
+            if self._operator == "lt":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field) < self.cast(
+                        getattr(self.get_secondary_model_alias(), self._value_field),
+                        self._filter_value
+                    )
+                )
+        self._operator = "eq"
+        return query.filter(
+            getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+            getattr(self.get_secondary_model_alias(), self._value_field) == self.cast(
+                getattr(self.get_secondary_model_alias(), self._value_field),
+                self._filter_value
+            )
+        )
+
+
 class JoinFactory(BaseJoinFilter):
     def __init__(self, model, filter_key, filter_value):
         super().__init__(model, filter_key, filter_value)
