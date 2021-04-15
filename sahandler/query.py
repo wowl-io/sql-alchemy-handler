@@ -251,15 +251,13 @@ class EsQueryHandler(QueryHandler):
         ).replace(
             '```', ''
         ).replace(
-            '!=', '<>'
+            " > '", ".keyword > '"
         ).replace(
-            ' > ', '.keyword > '
+            " >= '", ".keyword >= '"
         ).replace(
-            ' >= ', '.keyword >= '
+            " < '", ".keyword < '"
         ).replace(
-            ' < ', '.keyword < '
-        ).replace(
-            ' <= ', '.keyword <= '
+            " <= '", ".keyword <= '"
         )
 
     def get_return_payload(self):
