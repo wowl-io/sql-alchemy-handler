@@ -246,7 +246,21 @@ class EsQueryHandler(QueryHandler):
         ))
         return re.sub("^SELECT.*FROM", 'SELECT * FROM', query_text, flags=re.DOTALL).replace(
             ' LIKE ', '.keyword LIKE '
-        ).replace('...', '`.`').replace('```', '')
+        ).replace(
+            '...', '`.`'
+        ).replace(
+            '```', ''
+        ).replace(
+            '!=', '<>'
+        ).replace(
+            ' > ', '.keyword > '
+        ).replace(
+            ' >= ', '.keyword >= '
+        ).replace(
+            ' < ', '.keyword < '
+        ).replace(
+            ' <= ', '.keyword <= '
+        )
 
     def get_return_payload(self):
         response = requests.post(
