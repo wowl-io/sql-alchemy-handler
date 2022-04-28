@@ -7,11 +7,11 @@ setuptools.setup(
     name="sahandler",
     version="0.0.3",
     author="Spencer Siu",
-    author_email="spencer@topocean.com",
+    author_email="ssiu@wowl.io",
     description="SQL Alchemy helpers",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/topocean/sql-alchemy-handler",
+    url="https://github.com/wowl-io/sql-alchemy-handler",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
