@@ -245,16 +245,26 @@ class EsQueryHandler(QueryHandler):
             compile_kwargs={"literal_binds": True}
         ))
         return re.sub("^SELECT.*FROM", 'SELECT * FROM', query_text, flags=re.DOTALL).replace(
+            ' LIKE ', '.keyword LIKE '
+        ).replace(
             '...', '`.`'
         ).replace(
             '```', ''
+        ).replace(
+            " > '", ".keyword > '"
+        ).replace(
+            " >= '", ".keyword >= '"
+        ).replace(
+            " < '", ".keyword < '"
+        ).replace(
+            " <= '", ".keyword <= '"
         )
 
     def get_return_payload(self):
         response = requests.post(
             "%s/_opendistro/_sql" % self._es_host,
             json={
-                "query": self.get_query_text().replace('.keyword', '')
+                "query": self.get_query_text()
             },
             auth=self._es_auth
         )
