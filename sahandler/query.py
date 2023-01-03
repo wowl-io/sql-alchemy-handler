@@ -244,7 +244,7 @@ class EsQueryHandler(QueryHandler):
             dialect=pymysql.dialect(),
             compile_kwargs={"literal_binds": True}
         ))
-        return re.sub("^SELECT.*FROM", 'SELECT * FROM', query_text, flags=re.DOTALL).replace(
+        return re.sub("^SELECT\\s.*\\sFROM", 'SELECT * FROM', query_text, flags=re.DOTALL).replace(
             ' LIKE ', '.keyword LIKE '
         ).replace(
             '...', '`.`'
