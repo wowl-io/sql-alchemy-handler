@@ -225,12 +225,13 @@ class MultiOrFilter(BaseQueryFilter):
                         getattr(self._model, self._column),
                         filter_value
                     ))
-            self._column = filter_key
-            self._operator = "eq"
-            expressions.append(getattr(self._model, self._column) == self.cast(
-                getattr(self._model, self._column),
-                filter_value
-            ))
+            else:
+                self._column = filter_key
+                self._operator = "eq"
+                expressions.append(getattr(self._model, self._column) == self.cast(
+                    getattr(self._model, self._column),
+                    filter_value
+                ))
         return query.filter(or_(*expressions))
 
 
