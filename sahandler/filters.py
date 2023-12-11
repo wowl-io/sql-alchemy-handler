@@ -175,6 +175,65 @@ class OrFilter(BaseQueryFilter):
         return query.filter(or_(*expressions))
 
 
+class MultiOrFilter(BaseQueryFilter):
+    def add_to_query(self, query):
+        expressions = []
+        if '|' in self._filter_value:
+            self._filter_key = "%s=%s" % (self._filter_key, self._filter_value)
+        filter_conditions = self._filter_key.split('|')
+        for filter_condition in filter_conditions:
+            if '=' not in filter_condition:
+                continue
+            filter_key, filter_value = filter_condition.split('=')
+            if "__" in filter_key:
+                self._column, self._operator = filter_key.split("__")
+                if self._operator == "in":
+                    expressions.append(getattr(self._model, self._column).in_(self.cast(
+                        getattr(self._model, self._column),
+                        self.get_list(filter_value)
+                    )))
+                if self._operator == "exclude":
+                    expressions.append(getattr(self._model, self._column).notin_(self.cast(
+                        getattr(self._model, self._column),
+                        self.get_list(filter_value)
+                    )))
+                if self._operator == "contains":
+                    expressions.append(getattr(self._model, self._column).like("%%%s%%" % str(filter_value)))
+                if self._operator == "startswith":
+                    expressions.append(getattr(self._model, self._column).like("%s%%" % str(filter_value)))
+                if self._operator == "endswith":
+                    expressions.append(getattr(self._model, self._column).like("%%%s" % str(filter_value)))
+                if self._operator == "soundex":
+                    expressions.append(getattr(self._model, self._column).op("SOUNDS LIKE")(str(filter_value)))
+                if self._operator == "gte":
+                    expressions.append(getattr(self._model, self._column) >= self.cast(
+                        getattr(self._model, self._column),
+                        filter_value
+                    ))
+                if self._operator == "gt":
+                    expressions.append(getattr(self._model, self._column) > self.cast(
+                        getattr(self._model, self._column),
+                        filter_value
+                    ))
+                if self._operator == "lte":
+                    expressions.append(getattr(self._model, self._column) <= self.cast(
+                        getattr(self._model, self._column),
+                        filter_value
+                    ))
+                if self._operator == "lt":
+                    expressions.append(getattr(self._model, self._column) < self.cast(
+                        getattr(self._model, self._column),
+                        filter_value
+                    ))
+            self._column = filter_key
+            self._operator = "eq"
+            expressions.append(getattr(self._model, self._column) == self.cast(
+                getattr(self._model, self._column),
+                filter_value
+            ))
+        return query.filter(or_(*expressions))
+
+
 class BaseJoinFilter(BaseQueryFilter):
     is_join_filter = True
 
