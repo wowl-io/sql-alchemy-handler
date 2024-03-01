@@ -299,10 +299,16 @@ class OneToOneJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
         key_fields = self._filter_key.split("__")
         self._column = key_fields[1]
-        query = query.join(
-            self.get_secondary_model_alias(),
-            getattr(self._model, self._model_to_secondary_relation)
-        )
+        if self._filter_key.endswith("__exclude"):
+            query = query.outerjoin(
+                self.get_secondary_model_alias(),
+                getattr(self._model, self._model_to_secondary_relation)
+            )
+        else:
+            query = query.join(
+                self.get_secondary_model_alias(),
+                getattr(self._model, self._model_to_secondary_relation)
+            )
         if self._app:
             query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         if len(key_fields) == 3:
@@ -373,10 +379,16 @@ class OneToOneJoinFilter(BaseJoinFilter):
 
 class OneToManyJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
-        query = query.join(
-            self.get_secondary_model_alias(),
-            getattr(self._model, self._model_to_secondary_relation)
-        )
+        if self._filter_key.endswith("__exclude"):
+            query = query.outerjoin(
+                self.get_secondary_model_alias(),
+                getattr(self._model, self._model_to_secondary_relation)
+            )
+        else:
+            query = query.join(
+                self.get_secondary_model_alias(),
+                getattr(self._model, self._model_to_secondary_relation)
+            )
         if self._app:
             query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         if "__" in self._filter_key:
