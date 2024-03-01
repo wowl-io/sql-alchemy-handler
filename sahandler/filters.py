@@ -715,16 +715,28 @@ class OneToOneToManyJoinFilter(BaseJoinFilter):
 
 class ManyToManyJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
-        query = query.join(
-            self.get_intermediate_model_alias(),
-            getattr(self._model, self._model_to_intermediate_relation)
-        )
+        if self._filter_key.endswith("__exclude"):
+            query = query.outerjoin(
+                self.get_intermediate_model_alias(),
+                getattr(self._model, self._model_to_intermediate_relation)
+            )
+        else:
+            query = query.join(
+                self.get_intermediate_model_alias(),
+                getattr(self._model, self._model_to_intermediate_relation)
+            )
         if self._app:
             query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
-        query = query.join(
-            self.get_secondary_model_alias(),
-            getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
-        )
+        if self._filter_key.endswith("__exclude"):
+            query = query.outerjoin(
+                self.get_secondary_model_alias(),
+                getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
+            )
+        else:
+            query = query.join(
+                self.get_secondary_model_alias(),
+                getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
+            )
 
         key_fields = self._filter_key.split("__")
         self._column = key_fields[1]
