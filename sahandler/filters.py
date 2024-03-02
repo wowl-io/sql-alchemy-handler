@@ -319,7 +319,7 @@ class OneToOneJoinFilter(BaseJoinFilter):
                         ))
                     )
                 if self._operator == "exclude":
-                    return query.outerjoin(
+                    query = query.outerjoin(
                         self.get_secondary_model_alias(),
                         getattr(self._model, self._model_to_secondary_relation).and_(
                             getattr(
@@ -332,6 +332,9 @@ class OneToOneJoinFilter(BaseJoinFilter):
                             )
                         )
                     )
+                    if self._app:
+                        query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
+                    return query
                 if self._operator == "contains":
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like("%%%s%%" % str(self._filter_value))
@@ -402,7 +405,7 @@ class OneToManyJoinFilter(BaseJoinFilter):
                             ))
                         )
                     if self._operator == "exclude":
-                        return query.outerjoin(
+                        query = query.outerjoin(
                             self.get_secondary_model_alias(),
                             getattr(self._model, self._model_to_secondary_relation).and_(
                                 getattr(
@@ -415,6 +418,9 @@ class OneToManyJoinFilter(BaseJoinFilter):
                                 )
                             )
                         )
+                        if self._app:
+                            query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
+                        return query
                     if self._operator == "contains":
                         return query.filter(
                             getattr(self.get_secondary_model_alias(), self._column).like(
