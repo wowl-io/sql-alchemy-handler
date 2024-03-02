@@ -247,6 +247,8 @@ class EsQueryHandler(QueryHandler):
         return re.sub("^SELECT\\s.*\\sFROM", 'SELECT * FROM', query_text, flags=re.DOTALL).replace(
             ' LIKE ', '.keyword LIKE '
         ).replace(
+            ' NOT.keword ', '.keyword NOT '
+        ).replace(
             '...', '`.`'
         ).replace(
             '```', ''
