@@ -299,12 +299,7 @@ class OneToOneJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
         key_fields = self._filter_key.split("__")
         self._column = key_fields[1]
-        if self._filter_key.endswith("__exclude"):
-            query = query.outerjoin(
-                self.get_secondary_model_alias(),
-                getattr(self._model, self._model_to_secondary_relation)
-            )
-        else:
+        if not self._filter_key.endswith("__exclude"):
             query = query.join(
                 self.get_secondary_model_alias(),
                 getattr(self._model, self._model_to_secondary_relation)
@@ -324,13 +319,18 @@ class OneToOneJoinFilter(BaseJoinFilter):
                         ))
                     )
                 if self._operator == "exclude":
-                    return query.filter(
-                        getattr(
-                            self.get_secondary_model_alias(), self._column
-                        ).notin_(self.cast(
-                            getattr(self.get_secondary_model_alias(), self._column),
-                            self.get_list(self._filter_value)
-                        ))
+                    return query.outerjoin(
+                        self.get_secondary_model_alias(),
+                        getattr(self._model, self._model_to_secondary_relation).and_(
+                            getattr(
+                                self.get_secondary_model_alias(), self._column
+                            ).notin_(
+                                self.cast(
+                                    getattr(self.get_secondary_model_alias(), self._column),
+                                    self.get_list(self._filter_value)
+                                )
+                            )
+                        )
                     )
                 if self._operator == "contains":
                     return query.filter(
@@ -379,12 +379,7 @@ class OneToOneJoinFilter(BaseJoinFilter):
 
 class OneToManyJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
-        if self._filter_key.endswith("__exclude"):
-            query = query.outerjoin(
-                self.get_secondary_model_alias(),
-                getattr(self._model, self._model_to_secondary_relation)
-            )
-        else:
+        if not self._filter_key.endswith("__exclude"):
             query = query.join(
                 self.get_secondary_model_alias(),
                 getattr(self._model, self._model_to_secondary_relation)
@@ -407,13 +402,18 @@ class OneToManyJoinFilter(BaseJoinFilter):
                             ))
                         )
                     if self._operator == "exclude":
-                        return query.filter(
-                            getattr(
-                                self.get_secondary_model_alias(), self._column
-                            ).notin_(self.cast(
-                                getattr(self.get_secondary_model_alias(), self._column),
-                                self.get_list(self._filter_value)
-                            ))
+                        return query.outerjoin(
+                            self.get_secondary_model_alias(),
+                            getattr(self._model, self._model_to_secondary_relation).and_(
+                                getattr(
+                                    self.get_secondary_model_alias(), self._column
+                                ).notin_(
+                                    self.cast(
+                                        getattr(self.get_secondary_model_alias(), self._column),
+                                        self.get_list(self._filter_value)
+                                    )
+                                )
+                            )
                         )
                     if self._operator == "contains":
                         return query.filter(
@@ -715,24 +715,14 @@ class OneToOneToManyJoinFilter(BaseJoinFilter):
 
 class ManyToManyJoinFilter(BaseJoinFilter):
     def add_to_query(self, query):
-        if self._filter_key.endswith("__exclude"):
-            query = query.outerjoin(
-                self.get_intermediate_model_alias(),
-                getattr(self._model, self._model_to_intermediate_relation)
-            )
-        else:
+        if not self._filter_key.endswith("__exclude"):
             query = query.join(
                 self.get_intermediate_model_alias(),
                 getattr(self._model, self._model_to_intermediate_relation)
             )
-        if self._app:
-            query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
-        if self._filter_key.endswith("__exclude"):
-            query = query.outerjoin(
-                self.get_secondary_model_alias(),
-                getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
-            )
-        else:
+            if self._app:
+                query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
+        if not self._filter_key.endswith("__exclude"):
             query = query.join(
                 self.get_secondary_model_alias(),
                 getattr(self.get_intermediate_model_alias(), self._intermediate_to_secondary_relation)
@@ -753,14 +743,28 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                         ))
                     )
                 if self._operator == "exclude":
-                    return query.filter(
-                        getattr(
-                            self.get_secondary_model_alias(), self._column
-                        ).notin_(self.cast(
-                            getattr(self.get_secondary_model_alias(), self._column),
-                            self.get_list(self._filter_value)
-                        ))
+                    query = query.outerjoin(
+                        self.get_intermediate_model_alias(),
+                        getattr(self._model, self._model_to_intermediate_relation)
                     )
+                    if self._app:
+                        query = query.filter(getattr(self.get_intermediate_model_alias(), "app") == self._app)
+                    return query.outerjoin(
+                        self.get_secondary_model_alias(),
+                        getattr(
+                            self.get_intermediate_model_alias(),
+                            self._intermediate_to_secondary_relation
+                        ).and_(
+                                getattr(
+                                    self.get_secondary_model_alias(), self._column
+                                ).notin_(
+                                    self.cast(
+                                        getattr(self.get_secondary_model_alias(), self._column),
+                                        self.get_list(self._filter_value)
+                                    )
+                                )
+                            )
+                        )
                 if self._operator == "contains":
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like(
