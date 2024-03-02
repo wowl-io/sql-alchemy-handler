@@ -84,6 +84,8 @@ class DefaultFilter(BaseQueryFilter):
                     )))
                 if self._operator == "contains":
                     return query.filter(getattr(self._model, self._column).like("%%%s%%" % str(self._filter_value)))
+                if self._operator == "unlike":
+                    return query.filter(getattr(self._model, self._column).notlike("%%%s%%" % str(self._filter_value)))
                 if self._operator == "startswith":
                     return query.filter(getattr(self._model, self._column).like("%s%%" % str(self._filter_value)))
                 if self._operator == "endswith":
@@ -137,6 +139,8 @@ class OrFilter(BaseQueryFilter):
                     )))
                 if self._operator == "contains":
                     expressions.append(getattr(self._model, c).like("%%%s%%" % str(self._filter_value)))
+                if self._operator == "unlike":
+                    expressions.append(getattr(self._model, c).notlike("%%%s%%" % str(self._filter_value)))
                 if self._operator == "startswith":
                     expressions.append(getattr(self._model, c).like("%s%%" % str(self._filter_value)))
                 if self._operator == "endswith":
@@ -199,6 +203,8 @@ class MultiOrFilter(BaseQueryFilter):
                     )))
                 if self._operator == "contains":
                     expressions.append(getattr(self._model, self._column).like("%%%s%%" % str(filter_value)))
+                if self._operator == "unlike":
+                    expressions.append(getattr(self._model, self._column).notlike("%%%s%%" % str(filter_value)))
                 if self._operator == "startswith":
                     expressions.append(getattr(self._model, self._column).like("%s%%" % str(filter_value)))
                 if self._operator == "endswith":
@@ -341,6 +347,10 @@ class OneToOneJoinFilter(BaseJoinFilter):
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like("%%%s%%" % str(self._filter_value))
                     )
+                if self._operator == "unlike":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).notlike("%%%s%%" % str(self._filter_value))
+                    )
                 if self._operator == "startswith":
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like("%s%%" % str(self._filter_value))
@@ -428,6 +438,12 @@ class OneToManyJoinFilter(BaseJoinFilter):
                     if self._operator == "contains":
                         return query.filter(
                             getattr(self.get_secondary_model_alias(), self._column).like(
+                                "%%%s%%" % str(self._filter_value)
+                            )
+                        )
+                    if self._operator == "unlike":
+                        return query.filter(
+                            getattr(self.get_secondary_model_alias(), self._column).notlike(
                                 "%%%s%%" % str(self._filter_value)
                             )
                         )
@@ -546,6 +562,15 @@ class OneToManyKeyValueJoinFilter(BaseJoinFilter):
                         self.get_secondary_model_alias(), self._key_field
                     ) == self._column,
                     getattr(self.get_secondary_model_alias(), self._value_field).like(
+                        "%%%s%%" % str(self._filter_value)
+                    )
+                )
+            if self._operator == "unlike":
+                return query.filter(
+                    getattr(
+                        self.get_secondary_model_alias(), self._key_field
+                    ) == self._column,
+                    getattr(self.get_secondary_model_alias(), self._value_field).notlike(
                         "%%%s%%" % str(self._filter_value)
                     )
                 )
@@ -670,6 +695,12 @@ class OneToOneToManyJoinFilter(BaseJoinFilter):
                             "%%%s%%" % str(self._filter_value)
                         )
                     )
+                if self._operator == "unlike":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).notlike(
+                            "%%%s%%" % str(self._filter_value)
+                        )
+                    )
                 if self._operator == "startswith":
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like(
@@ -783,6 +814,12 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                             "%%%s%%" % str(self._filter_value)
                         )
                     )
+                if self._operator == "unlike":
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column).notlike(
+                            "%%%s%%" % str(self._filter_value)
+                        )
+                    )
                 if self._operator == "startswith":
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like(
@@ -892,6 +929,13 @@ class ManyToManyKeyValueJoinFilter(BaseJoinFilter):
                     return query.filter(
                         getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
                         getattr(self.get_secondary_model_alias(), self._column).like(
+                            "%%%s%%" % str(self._filter_value)
+                        )
+                    )
+                if self._operator == "unlike":
+                    return query.filter(
+                        getattr(self.get_intermediate_model_alias(), self._key_field) == key_value,
+                        getattr(self.get_secondary_model_alias(), self._column).notlike(
                             "%%%s%%" % str(self._filter_value)
                         )
                     )
@@ -1013,6 +1057,13 @@ class OneToOneToKeyValueJoinFilter(BaseJoinFilter):
                 return query.filter(
                     getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
                     getattr(self.get_secondary_model_alias(), self._value_field).like(
+                        "%%%s%%" % str(self._filter_value)
+                    )
+                )
+            if self._operator == "unlike":
+                return query.filter(
+                    getattr(self.get_secondary_model_alias(), self._key_field) == key_value,
+                    getattr(self.get_secondary_model_alias(), self._value_field).notlike(
                         "%%%s%%" % str(self._filter_value)
                     )
                 )
