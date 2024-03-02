@@ -304,8 +304,8 @@ class OneToOneJoinFilter(BaseJoinFilter):
                 self.get_secondary_model_alias(),
                 getattr(self._model, self._model_to_secondary_relation)
             )
-        if self._app:
-            query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
+            if self._app:
+                query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         if len(key_fields) == 3:
             self._operator = key_fields[2]
             if self.is_valid_column(self._secondary_model):
@@ -384,8 +384,8 @@ class OneToManyJoinFilter(BaseJoinFilter):
                 self.get_secondary_model_alias(),
                 getattr(self._model, self._model_to_secondary_relation)
             )
-        if self._app:
-            query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
+            if self._app:
+                query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
         if "__" in self._filter_key:
             key_fields = self._filter_key.split("__")
             self._column = key_fields[1]
