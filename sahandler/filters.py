@@ -334,7 +334,9 @@ class OneToOneJoinFilter(BaseJoinFilter):
                     )
                     if self._app:
                         query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
-                    return query
+                    return query.filter(
+                        getattr(self.get_secondary_model_alias(), self._column) != None
+                    )
                 if self._operator == "contains":
                     return query.filter(
                         getattr(self.get_secondary_model_alias(), self._column).like("%%%s%%" % str(self._filter_value))
@@ -420,7 +422,9 @@ class OneToManyJoinFilter(BaseJoinFilter):
                         )
                         if self._app:
                             query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
-                        return query
+                        return query.filter(
+                            getattr(self.get_secondary_model_alias(), self._column) != None
+                        )
                     if self._operator == "contains":
                         return query.filter(
                             getattr(self.get_secondary_model_alias(), self._column).like(
@@ -770,6 +774,8 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                                     )
                                 )
                             )
+                        ).filter(
+                            getattr(self.get_secondary_model_alias(), self._column) != None
                         )
                 if self._operator == "contains":
                     return query.filter(
