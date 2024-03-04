@@ -330,7 +330,7 @@ class OneToOneJoinFilter(BaseJoinFilter):
                         getattr(self._model, self._model_to_secondary_relation).and_(
                             getattr(
                                 self.get_secondary_model_alias(), self._column
-                            ).notin_(
+                            ).in_(
                                 self.cast(
                                     getattr(self.get_secondary_model_alias(), self._column),
                                     self.get_list(self._filter_value)
@@ -341,7 +341,7 @@ class OneToOneJoinFilter(BaseJoinFilter):
                     if self._app:
                         query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
                     return query.filter(
-                        getattr(self.get_secondary_model_alias(), self._column) != None
+                        getattr(self.get_secondary_model_alias(), self._column) == None
                     )
                 if self._operator == "contains":
                     return query.filter(
@@ -422,7 +422,7 @@ class OneToManyJoinFilter(BaseJoinFilter):
                             getattr(self._model, self._model_to_secondary_relation).and_(
                                 getattr(
                                     self.get_secondary_model_alias(), self._column
-                                ).notin_(
+                                ).in_(
                                     self.cast(
                                         getattr(self.get_secondary_model_alias(), self._column),
                                         self.get_list(self._filter_value)
@@ -433,7 +433,7 @@ class OneToManyJoinFilter(BaseJoinFilter):
                         if self._app:
                             query = query.filter(getattr(self.get_secondary_model_alias(), "app") == self._app)
                         return query.filter(
-                            getattr(self.get_secondary_model_alias(), self._column) != None
+                            getattr(self.get_secondary_model_alias(), self._column) == None
                         )
                     if self._operator == "contains":
                         return query.filter(
@@ -798,7 +798,7 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                         ).and_(
                                 getattr(
                                     self.get_secondary_model_alias(), self._column
-                                ).notin_(
+                                ).in_(
                                     self.cast(
                                         getattr(self.get_secondary_model_alias(), self._column),
                                         self.get_list(self._filter_value)
@@ -806,7 +806,7 @@ class ManyToManyJoinFilter(BaseJoinFilter):
                                 )
                             )
                         ).filter(
-                            getattr(self.get_secondary_model_alias(), self._column) != None
+                            getattr(self.get_secondary_model_alias(), self._column) == None
                         )
                 if self._operator == "contains":
                     return query.filter(
