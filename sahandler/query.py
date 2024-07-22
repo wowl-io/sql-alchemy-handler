@@ -142,8 +142,22 @@ class QueryHandler(object):
                 query = f.add_to_query(query)
             except AttributeError:
                 pass
-        order_func = getattr(getattr(self._model, self._order_by), self._order_dir)
-        query = query.order_by(order_func()).offset(self._offset).limit(self._limit)
+
+        if ',' in self._order_by and ',' in self._order_dir:
+            order_by_fields = self._order_by.split(',')
+            order_dir_fields = self._order_dir.split(',')
+            for order_by_index, order_by_value in enumerate(order_by_fields):
+                try:
+                    order_func = getattr(getattr(self._model, order_by_value), order_dir_fields[order_by_index])
+                    query = query.order_by(order_func())
+                except IndexError:
+                    order_func = getattr(getattr(self._model, order_by_value), 'asc')
+                    query = query.order_by(order_func())
+        else:
+            order_func = getattr(getattr(self._model, self._order_by), self._order_dir)
+            query = query.order_by(order_func())
+
+        query = query.offset(self._offset).limit(self._limit)
         return query
 
     def get_count(self):
